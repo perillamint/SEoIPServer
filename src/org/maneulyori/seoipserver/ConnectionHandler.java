@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 
+import javax.net.ssl.SSLException;
 import javax.smartcardio.Card;
 import javax.smartcardio.CardChannel;
 import javax.smartcardio.CardException;
@@ -46,14 +47,21 @@ public class ConnectionHandler implements Runnable {
 			PrintStream socketPrintStream = new PrintStream(socketOutputStream);
 
 			while (!terminate) {
-				String command = socketReader.readLine();
+				String command;
 
-				if(command == null) {
+				try {
+					command = socketReader.readLine();
+				} catch (SSLException e) {
+					System.out.println("SSL Exception.");
+					return;
+				}
+
+				if (command == null) {
 					socket.close();
 					cardlock.freeLock(cardIdx);
 					break;
 				}
-				
+
 				String[] splittedCommand = command.split(" ");
 
 				socketPrintStream.println(doCommand(splittedCommand));

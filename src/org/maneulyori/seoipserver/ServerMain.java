@@ -1,10 +1,12 @@
 package org.maneulyori.seoipserver;
 
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 import javax.xml.bind.DatatypeConverter;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSocket;
 import javax.smartcardio.*;
 
 public class ServerMain {
@@ -13,26 +15,36 @@ public class ServerMain {
 	static CardTerminals cardTerminals = terminalfactory.terminals();
 
 	public static String toHexString(byte[] array) {
-	    return DatatypeConverter.printHexBinary(array);
+		return DatatypeConverter.printHexBinary(array);
 	}
 
 	public static byte[] toByteArray(String s) {
-	    return DatatypeConverter.parseHexBinary(s);
+		return DatatypeConverter.parseHexBinary(s);
 	}
-	
+
 	public static void main(String[] args) throws IOException, CardException {
 
 		int port = 1337;
-		ServerSocket serverSocket = new ServerSocket(port);
-		
+
+		System.setProperty("javax.net.ssl.keyStore", "./sslkeystore.jks");
+		System.setProperty("javax.net.ssl.keyStorePassword", "111111");
+
+		SSLServerSocketFactory sslserversocketfactory = (SSLServerSocketFactory) SSLServerSocketFactory
+				.getDefault();
+
+		SSLServerSocket serverSocket = (SSLServerSocket) sslserversocketfactory
+				.createServerSocket(port);
+
+		serverSocket.setEnabledProtocols(new String[] { "TLSv1", "TLSv1.1",
+				"TLSv1.2", "SSLv3" });
+
 		TerminalFactory factory = TerminalFactory.getDefault();
 		CardManager cardmanager = new CardManager();
 		cardmanager.setCardTerminals(factory.terminals());
-		
-		
-		while(true) {
+
+		while (true) {
 			Socket clientSocket = serverSocket.accept();
-			
+
 			ConnectionHandler handler = new ConnectionHandler(clientSocket);
 			new Thread(handler).start();
 		}

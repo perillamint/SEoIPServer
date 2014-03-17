@@ -9,3 +9,5 @@
 *.ear
 
 !lib/*
+
+sslkeystore.jks
