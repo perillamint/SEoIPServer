@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 import javax.net.ssl.SSLException;
 import javax.smartcardio.Card;
@@ -26,8 +27,13 @@ public class ConnectionHandler implements Runnable {
 	private CardManager cardlock = new CardManager();
 	private InputStream socketInputStream;
 	private OutputStream socketOutputStream;
+	private String remoteAddr;
 
 	public ConnectionHandler(Socket socket) throws IOException {
+		remoteAddr = socket.getRemoteSocketAddress().toString();
+		System.out.println("Connection from " + remoteAddr);
+		socket.setSoTimeout(10000);
+
 		this.socket = socket;
 		this.socketInputStream = socket.getInputStream();
 		this.socketOutputStream = socket.getOutputStream();
@@ -54,9 +60,17 @@ public class ConnectionHandler implements Runnable {
 				} catch (SSLException e) {
 					System.out.println("SSL Exception.");
 					return;
+				} catch (SocketTimeoutException e) {
+					System.out.println("Connection from " + remoteAddr
+							+ " timed out.");
+
+					socket.close();
+					return;
 				}
 
 				if (command == null) {
+					System.out.println("Connection from " + remoteAddr
+							+ " closed.");
 					socket.close();
 					cardlock.freeLock(cardIdx);
 					break;
@@ -67,7 +81,6 @@ public class ConnectionHandler implements Runnable {
 				socketPrintStream.println(doCommand(splittedCommand));
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			try {
 				socket.close();
@@ -75,7 +88,6 @@ public class ConnectionHandler implements Runnable {
 				e1.printStackTrace();
 			}
 		} catch (CardException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -153,6 +165,10 @@ public class ConnectionHandler implements Runnable {
 			}
 
 			return retval.toString();
+		case "PING":
+			return "PONG";
+		case "PONG":
+			return "PING";
 		default:
 			return "ERROR INVALIDCMD";
 		}
