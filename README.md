@@ -5,6 +5,7 @@ Secure Element over IP server
 
 Command list
 
+AUTH <password> - Auth with password.<br .>
 LIST - List card readers present on system.<br />
 LOCK &lt;CARDRDR_NUM&gt; - Select and lock card reader.<br />
 UNLOCK - Unlock acquired card reader.<br />
