@@ -192,6 +192,8 @@ public class ConnectionHandler implements Runnable {
 				response = cardChannel.transmit(new CommandAPDU(apdu));
 			} catch (IllegalArgumentException e) {
 				return "ERROR ILLEGALARG";
+			} catch (CardException e) {
+				return "ERROR CARDERROR";
 			}
 
 			byte[] resp = response.getBytes();
