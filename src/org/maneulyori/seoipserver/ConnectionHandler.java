@@ -8,7 +8,6 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -55,8 +54,9 @@ public class ConnectionHandler implements Runnable {
 			BufferedReader socketReader = new BufferedReader(
 					new InputStreamReader(socketInputStream));
 
-			final PrintStream socketPrintStream = new PrintStream(socketOutputStream);
-			
+			final PrintStream socketPrintStream = new PrintStream(
+					socketOutputStream);
+
 			keepalive.schedule(new TimerTask() {
 
 				@Override
@@ -169,20 +169,23 @@ public class ConnectionHandler implements Runnable {
 			CardChannel cardChannel = card.getBasicChannel();
 
 			byte[] apdu = new byte[splittedCommand.length - 1];
+			StringBuilder apduStr = new StringBuilder();
 
 			try {
 				for (int i = 1; i < splittedCommand.length; i++) {
+					apduStr.append(" " + splittedCommand[i]);
 					apdu[i - 1] = (byte) Integer.parseInt(splittedCommand[i],
 							16);
 				}
 			} catch (NumberFormatException e) {
 				return "ERROR ILLEGALFORMAT";
 			}
-			
-			System.out.println("APDU from " + remoteAddr + " : " + Arrays.toString(apdu));
+
+			System.out.println("APDU from " + remoteAddr + " :"
+					+ apduStr.toString());
 
 			ResponseAPDU response;
-			
+
 			try {
 				response = cardChannel.transmit(new CommandAPDU(apdu));
 			} catch (IllegalArgumentException e) {
@@ -190,16 +193,17 @@ public class ConnectionHandler implements Runnable {
 			}
 
 			byte[] resp = response.getBytes();
-			
-			System.out.println("APDU to " + remoteAddr + " : " + Arrays.toString(resp));
-			
+
 			StringBuilder retval = new StringBuilder();
 			retval.append("APDU");
 
 			for (int i = 0; i < resp.length; i++) {
 				retval.append(" " + String.format("%02X", resp[i] & 0xFF));
 			}
-			
+
+			System.out.println("APDU to " + remoteAddr + " : "
+					+ retval.toString().substring(5));
+
 			retval.append("\nOK");
 
 			return retval.toString();
