@@ -28,6 +28,8 @@ public class ConnectionHandler implements Runnable {
 	private InputStream socketInputStream;
 	private OutputStream socketOutputStream;
 	private String remoteAddr;
+	private boolean auth = false;
+	private String key = "changethis";
 
 	public ConnectionHandler(Socket socket) throws IOException {
 		remoteAddr = socket.getRemoteSocketAddress().toString();
@@ -45,7 +47,6 @@ public class ConnectionHandler implements Runnable {
 
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
 		try {
 			BufferedReader socketReader = new BufferedReader(
 					new InputStreamReader(socketInputStream));
@@ -65,6 +66,7 @@ public class ConnectionHandler implements Runnable {
 							+ " timed out.");
 
 					socket.close();
+					cardlock.freeLock(cardIdx);
 					return;
 				}
 
@@ -78,7 +80,23 @@ public class ConnectionHandler implements Runnable {
 
 				String[] splittedCommand = command.split(" ");
 
-				socketPrintStream.println(doCommand(splittedCommand));
+				if (auth == false) {
+					if (splittedCommand.length == 2
+							&& splittedCommand[1].equals(key)) {
+						auth = true;
+						socketPrintStream.println("OK");
+					} else {
+						socketPrintStream.println("ERROR AUTHFAIL");
+						socket.close();
+						cardlock.freeLock(cardIdx);
+						System.out.println("Auth from " + remoteAddr + " failed.");
+						System.out.println("Connection from " + remoteAddr
+								+ " closed.");
+						break;
+					}
+				} else {
+					socketPrintStream.println(doCommand(splittedCommand));
+				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
