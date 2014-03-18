@@ -64,17 +64,12 @@ public class ConnectionHandler implements Runnable {
 				} catch (SocketTimeoutException e) {
 					System.out.println("Connection from " + remoteAddr
 							+ " timed out.");
-
-					socket.close();
-					cardlock.freeLock(cardIdx);
+					closeConn();
 					return;
 				}
 
 				if (command == null) {
-					System.out.println("Connection from " + remoteAddr
-							+ " closed.");
-					socket.close();
-					cardlock.freeLock(cardIdx);
+					closeConn();
 					break;
 				}
 
@@ -87,11 +82,9 @@ public class ConnectionHandler implements Runnable {
 						socketPrintStream.println("OK");
 					} else {
 						socketPrintStream.println("ERROR AUTHFAIL");
-						socket.close();
-						cardlock.freeLock(cardIdx);
-						System.out.println("Auth from " + remoteAddr + " failed.");
-						System.out.println("Connection from " + remoteAddr
-								+ " closed.");
+						System.out.println("Auth from " + remoteAddr
+								+ " failed.");
+						closeConn();
 						break;
 					}
 				} else {
@@ -108,6 +101,12 @@ public class ConnectionHandler implements Runnable {
 		} catch (CardException e) {
 			e.printStackTrace();
 		}
+	}
+
+	private void closeConn() throws IOException {
+		socket.close();
+		cardlock.freeLock(cardIdx);
+		System.out.println("Connection from " + remoteAddr + " closed.");
 	}
 
 	private String doCommand(String[] splittedCommand) throws CardException {
