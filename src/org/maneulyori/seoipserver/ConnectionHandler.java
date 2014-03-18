@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -31,10 +32,10 @@ public class ConnectionHandler implements Runnable {
 	private OutputStream socketOutputStream;
 	private String remoteAddr;
 	private boolean auth = false;
-	private String key = "changethis";
+	private String key;
 	private Timer keepalive = new Timer();
 
-	public ConnectionHandler(Socket socket) throws IOException {
+	public ConnectionHandler(Properties config, Socket socket) throws IOException {
 		remoteAddr = socket.getRemoteSocketAddress().toString();
 		System.out.println("Connection from " + remoteAddr);
 		socket.setSoTimeout(10000);
@@ -42,6 +43,7 @@ public class ConnectionHandler implements Runnable {
 		this.socket = socket;
 		this.socketInputStream = socket.getInputStream();
 		this.socketOutputStream = socket.getOutputStream();
+		this.key = config.getProperty("key");
 	}
 
 	public void Terminate(boolean terminate) {

@@ -1,7 +1,9 @@
 package org.maneulyori.seoipserver;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Properties;
 
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
@@ -14,10 +16,15 @@ public class ServerMain {
 
 	public static void main(String[] args) throws IOException, CardException {
 
-		int port = 1337;
+		Properties config = new java.util.Properties();
+		config.load(new FileInputStream("serverConfig.cfg"));
 
-		System.setProperty("javax.net.ssl.keyStore", "./sslkeystore.jks");
-		System.setProperty("javax.net.ssl.keyStorePassword", "111111");
+		int port = Integer.parseInt(config.getProperty("port"));
+		String keystorePath = config.getProperty("keystorePath");
+		String keystoreKey = config.getProperty("keystoreKey");
+
+		System.setProperty("javax.net.ssl.keyStore", keystorePath);
+		System.setProperty("javax.net.ssl.keyStorePassword", keystoreKey);
 
 		SSLServerSocketFactory sslserversocketfactory = (SSLServerSocketFactory) SSLServerSocketFactory
 				.getDefault();
@@ -35,7 +42,8 @@ public class ServerMain {
 		while (true) {
 			Socket clientSocket = serverSocket.accept();
 
-			ConnectionHandler handler = new ConnectionHandler(clientSocket);
+			ConnectionHandler handler = new ConnectionHandler(config,
+					clientSocket);
 			new Thread(handler).start();
 		}
 	}
