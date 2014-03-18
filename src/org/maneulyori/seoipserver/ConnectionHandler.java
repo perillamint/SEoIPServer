@@ -8,6 +8,9 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.net.ssl.SSLException;
 import javax.smartcardio.Card;
@@ -30,6 +33,7 @@ public class ConnectionHandler implements Runnable {
 	private String remoteAddr;
 	private boolean auth = false;
 	private String key = "changethis";
+	private Timer keepalive = new Timer();
 
 	public ConnectionHandler(Socket socket) throws IOException {
 		remoteAddr = socket.getRemoteSocketAddress().toString();
@@ -51,7 +55,15 @@ public class ConnectionHandler implements Runnable {
 			BufferedReader socketReader = new BufferedReader(
 					new InputStreamReader(socketInputStream));
 
-			PrintStream socketPrintStream = new PrintStream(socketOutputStream);
+			final PrintStream socketPrintStream = new PrintStream(socketOutputStream);
+			
+			keepalive.schedule(new TimerTask() {
+
+				@Override
+				public void run() {
+					socketPrintStream.println("PING");
+				}
+			}, socket.getSoTimeout() - 1000, socket.getSoTimeout() - 1000);
 
 			while (!terminate) {
 				String command;
@@ -106,6 +118,8 @@ public class ConnectionHandler implements Runnable {
 	private void closeConn() throws IOException {
 		socket.close();
 		cardlock.freeLock(cardIdx);
+		keepalive.cancel();
+		keepalive.purge();
 		System.out.println("Connection from " + remoteAddr + " closed.");
 	}
 
@@ -164,9 +178,11 @@ public class ConnectionHandler implements Runnable {
 			} catch (NumberFormatException e) {
 				return "ERROR ILLEGALFORMAT";
 			}
+			
+			System.out.println("APDU from " + remoteAddr + " : " + Arrays.toString(apdu));
 
 			ResponseAPDU response;
-
+			
 			try {
 				response = cardChannel.transmit(new CommandAPDU(apdu));
 			} catch (IllegalArgumentException e) {
@@ -174,18 +190,23 @@ public class ConnectionHandler implements Runnable {
 			}
 
 			byte[] resp = response.getBytes();
+			
+			System.out.println("APDU to " + remoteAddr + " : " + Arrays.toString(resp));
+			
 			StringBuilder retval = new StringBuilder();
-			retval.append("OK\nAPDU");
+			retval.append("APDU");
 
 			for (int i = 0; i < resp.length; i++) {
 				retval.append(" " + String.format("%02X", resp[i] & 0xFF));
 			}
+			
+			retval.append("\nOK");
 
 			return retval.toString();
 		case "PING":
 			return "PONG";
 		case "PONG":
-			return "PING";
+			return "OK";
 		default:
 			return "ERROR INVALIDCMD";
 		}
